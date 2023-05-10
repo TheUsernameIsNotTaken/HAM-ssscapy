@@ -51,23 +51,25 @@ if __name__ == '__main__':
     my_add = '::abcd'
 
     # Generate a packet
-    a = sp.Ether()/sp.IPv6(src=my_add, dst='::1')/sp.TCP(sport=9000, dport=9090)
-    print(" --- Base packet send: \n" + str(a))
-
+    a_h = sp.Ether()/sp.IPv6(src=my_add, dst='::1')/sp.TCP(sport=9000, dport=9090)
     # Generate payload
     data = "Hello RSU!\n\tFrom: ITU"
+    # Add payload to header
+    a = a_h/sp.Raw(load=data)
+    print(" --- Base packet to send: \n")
+    a.show()
 
     # Send packet and receive answer
-    p = sp.sendp(a/sp.Raw(load=data), iface="enp0s3", count=1, inter=1)
+    p = sp.sendp(a, iface="enp0s3", count=1, inter=1)
 
     # Receive return packet
     print("Waiting for answer")
     # INSERT_IP = REDACTED
     # s = sp.sniff(filter="ip6 host " + INSERT_IP + " and tcp dst port 9090", count=1)
-    s = sp.sniff(filter="ip6 and tcp dst port 9090", count=1)   # dst host " + my_add + "
+    s = sp.sniff(filter="ip6 dst host " + my_add + " and tcp dst port 9090", count=1)
     s_p = s[0]
 
     # Write out the answer payload
-    rec_tcp = [sp.TCP]
+    rec_tcp = s_p[sp.TCP]
     rec_pl = rec_tcp.payload.load.decode('ascii')
-    print(rec_pl)
+    print(" --- Received answer payload: \n" + rec_pl)
